@@ -3,69 +3,100 @@
  */
 'use strict';
 
-import { createSiftView } from '@redsift/sift-sdk-web';
+import { SiftView, registerSiftView } from '@redsift/sift-sdk-web';
+import { html as bars } from '@redsift/d3-rs-bars';
+import { select } from 'd3-selection';
+import { utcParse } from 'd3-time-format';
+import '@redsift/ui-rs-hero';
+import {cardCreator} from './lib/card-creator.js';
 
-var SiftOcadoView = createSiftView({
-  init: function () {
+var PFV_LINK = 'https://www.cdc.gov/pcd/issues/2014/13_0390.htm';
+var GOOGLE_SEARCH_TEMPLATE = 'https://www.google.co.uk/search?q=';
+
+export default class CreateView extends SiftView {
+  constructor() {
+    // You have to call the super() method to initialize the base class.
+    super();
     console.log('sift-ocado: view: init');
+
     // We subscribe to 'storageupdate' updates from the Controller
-    this.controller.subscribe('storageupdate', this.onStorageUpdate.bind(this));
-  },
+    this.controller.subscribe('countupdated', this.countUpdated.bind(this));
+    this.controller.subscribe('suggestionsupdated', this.suggestionsUpdated.bind(this));
+    window.addEventListener('resize', this.onResize.bind(this));
+  }
 
   /**
    * Sift lifecycle method 'presentView'
    * Called by the framework when the loadView callback in frontend/controller.js calls the resolve function or returns a value
    */
-  presentView: function (value) {
+  presentView (value) {
     console.log('sift-ocado: view: presentView: ', value);
-    var counts = value.data;
-/* DEBUG: stub data
-    var counts = [
-      {key: '201512', value: 100.00},
-      {key: '201601', value: 10.00},
-      {key: '201602', value: 150.00},
-      {key: '201603', value: 20.00},
-      {key: '201604', value: 50.00},
-      {key: '201605', value: 200.00},
-      {key: '201606', value: 1000.00},
-      {key: '201607', value: 100.00}
-    ];
-*/
-    // convert counts keys to epoch
-    var parseTime = d3.utcParse('%Y%m');
-    counts = counts.map(function (e) {
+    this.renderTotalSection(value.data.count);
+    this.renderCardsSection(value.data.suggestions);
+  }
+
+
+  renderTotalSection(data){
+    const parseTime = utcParse('%Y%m');
+    this._counts = data.map(function (e) {
       return {
         l: parseTime(e.key).getTime(),
         v: [e.value]
       };
     });
-    var format = d3.format('.2f');
-    var stacks = d3_rs_lines.html()
-      .width(700) // scale it up
-      .tickCountIndex('utcMonth') // want monthly ticks
-      .tickDisplayValue(function(d){return '£'+d;}) // Force to £ for now
-      .labelTime('%b') // use the smart formatter
-      .curve('curveStep')
-      .tipHtml((d, i) => '£' + format(d[1][1]))
-      .tickFormatValue('($.0f');
-    d3.select('#chart')
-      .datum(counts)
-      .call(stacks);
-  },
+
+    if(!this._expense) {
+      this._expense = bars('monthly')
+        .tickCountIndex('utcMonth') // want monthly ticks
+        .tickDisplayValue(d => `£${d}`) // Force to £ for now
+        .labelTime('%b') // use the smart formatter
+        .orientation('bottom')
+        .height(200)
+        .tickFormatValue('($.0f');
+    }
+    this.onResize();
+  }
+
+  onResize() {
+    const content = document.querySelector('.content__container--expand');
+    const e = this._counts || [];
+    select('#expense')
+      .datum(e)
+      .call(this._expense.width(content.clientWidth * 0.8));
+  }
 
   /**
    * Sift lifecycle method 'willPresentView'
    * Called when a sift starts to transition between size classes
    */
-  willPresentView: function (value) {
+  willPresentView (value) {
     console.log('sift-ocado: view: willPresentView: ', value);
-  },
+  }
+
+  renderCardsSection(data){
+    if (data.length === 0){
+      return;
+    }
+    this.removeEmptyState();
+    cardCreator(data);
+  }
+
+  removeEmptyState(){
+    document.querySelector('.scoresinfo').classList.remove('hide');
+    document.querySelector('#hero-message').style.display = 'none';
+  }
 
   /**
    * Custom methods defined by the developer
    */
-  onStorageUpdate: function (data) {
-    console.log('sift-ocado: view: onStorageUpdate: ', data);
-    this.presentView({data: data});
+  countUpdated (data) {
+    console.log('sift-ocado: view: countUpdated: ', data);
+    this.renderTotalSection(data);
   }
-});
+
+  suggestionsUpdated(data){
+    this.renderCardsSection(data);
+  }
+}
+
+registerSiftView(new CreateView(window));

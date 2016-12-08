@@ -4,9 +4,13 @@
   "description": "Ocado receipts aggregation.",
   "author": "Christian Miccio",
   "version": "1.0.0",
-  "color": "#ed154f",
-  "image": "https://static.redsift.io/assets/sifts/template/template.jpg",
+  "icon": "assets/icon.svg",
   "interfaces": {
+    "email": {
+      "thread" : {
+        "controller": "dist/js/controller.umd-es2015.js"
+      }
+    },
     "summary": {
       "controller": "dist/js/controller.umd-es2015.js"
     }
@@ -33,12 +37,12 @@
                 }
               }
             }],
-            "wants": [
-              "archive",
-              "strippedHtmlBody"
-            ],
             "operator": "AND"
-          }
+          },
+          "wants": [
+            "archive",
+            "strippedHtmlBody"
+          ]
         }
       }
     },
@@ -51,7 +55,8 @@
           "bucket": "ocadoOrders"
       },
       "outputs": {
-          "messages": {}
+          "messages": {},
+          "foodItems": {}
       }
     },
     {
@@ -66,16 +71,39 @@
       "outputs": {
           "count": {}
       }
+    },
+    {
+      "#": "Food Set Creator",
+      "implementation": {
+        "javascript": "server/intersection.js"
+      },
+      "input": {
+        "bucket": "foodItems",
+        "select": "*"
+      },
+      "outputs": {
+        "suggestions": {},
+        "tidList":{}
+      }
     }],
     "stores":{
       "messages" : {
         "key$schema":"string/string/string"
+      }, 
+      "foodItems":{
+        "key$schema": "string"
       }
     },
     "outputs":{
       "exports":{
         "count" : {
           "key$schema":"string"
+        },
+        "suggestions" : {
+          "key$schema":"string"
+        },
+        "tidList":{
+          "import":"_email.tid"
         }
       }
     }

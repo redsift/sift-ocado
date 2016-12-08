@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="height:100%">
 
 <head>
   <!-- Basic Page Needs –––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -13,37 +13,8 @@
   <link rel="stylesheet" type="text/css" href="dist/css/style.min.css">
 </head>
 
-<body id="home">
-  <rs-hero header="Ocado Sift" bg-class="-bg-hero -effect-darken" scroll-target="#scroll-target" sticky-header=".content">
-    <img class="logo" src="assets/icon-ocado-white.svg" />
-    <p class="fade-in delay" id='hero-message'>We couldn't find any Ocado receipts...</p>
-  </rs-hero>
-
-  <div class="content" id="scroll-target">
-    <div class="content__container--expand ocado-container">
-      <div class="sectionHeader">
-        <div class="sectionTitle">Total</div>
-        <div class="sectionSubtitle">monthly orders</div>
-      </div>
-      <div class="ocado-layout-center">
-        <div id="expense"></div>
-      </div>
-    </div>
-    <div class="content__container--expand ocado-container scores-container">
-      <div class="sectionHeader">
-        <div class="sectionTitle">Nutrient</div>
-        <div class="sectionSubtitle">density scores</div>
-      </div>
-      <div class="ocado-layout-center scoresinfo hide">
-        <p> Next time try something with a higher nutrient density score:</p>
-        <div class="helper">
-          <div id="nscore" class="cards"></div>
-        </div>
-        <p class="footer">* Powerhouse fruits and vegetables (PFV), are foods most strongly associated with increased health benefits. The nutrient density score is a way to classify them as described <a href="https://www.cdc.gov/pcd/issues/2014/13_0390.htm" target="_blank">here</a>.
-        </p>
-      </div>
-    </div>
-  </div>
+<body id="home" style="height:100%">
+  <div id="nscore" class="onecard"></div>
   <template id="card-template">
       <div class="card">
       <div class="card__family">
@@ -76,8 +47,7 @@
     </div>
   </template>
 
-  <!-- Implemetation file for all the view-related callbacks. -->
-  <script src="dist/js/view.umd-es2015.js"></script>
+  <script src="dist/js/detail.umd-es2015.js"></script>
 </body>
 
 </html>
