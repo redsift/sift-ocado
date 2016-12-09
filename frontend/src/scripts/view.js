@@ -8,7 +8,8 @@ import { html as bars } from '@redsift/d3-rs-bars';
 import { select } from 'd3-selection';
 import { utcParse } from 'd3-time-format';
 import '@redsift/ui-rs-hero';
-import {cardCreator} from './lib/card-creator.js';
+import {cardCreator} from './lib/card-creator';
+import ingredients from './ingredients.json';
 
 var PFV_LINK = 'https://www.cdc.gov/pcd/issues/2014/13_0390.htm';
 var GOOGLE_SEARCH_TEMPLATE = 'https://www.google.co.uk/search?q=';
@@ -38,12 +39,26 @@ export default class CreateView extends SiftView {
 
   renderTotalSection(data){
     const parseTime = utcParse('%Y%m');
-    this._counts = data.map(function (e) {
-      return {
-        l: parseTime(e.key).getTime(),
-        v: [e.value]
-      };
+    moment.utc();
+    let months = {};
+    for(var i = 0; i < 12; i++){
+      const a = moment().subtract(i, 'months').format('YYYYMM');
+      months[a] = null;
+    }
+    // find the earliest date we have data for the last year
+    let min = Infinity;
+    data.forEach(d => {
+      min = Math.min(min, d.key);
+      months[d.key] = d.value
     });
+
+    this._counts = Object.keys(months)
+      .filter(k => k >= min)
+      .map(d => ({
+        l: parseTime(d).getTime(),
+        v: months[d] ? [months[d]] : []
+      }))
+
 
     if(!this._expense) {
       this._expense = bars('monthly')
@@ -60,9 +75,24 @@ export default class CreateView extends SiftView {
   onResize() {
     const content = document.querySelector('.content__container--expand');
     const e = this._counts || [];
+    const w = content.clientWidth * 0.8;
+    let dat = e.slice(-12);
+    let barSize = 6;
+    let barSizeCoefficient = 0.7;
+    if(w < 230){
+      dat = e.slice(-2);
+      barSizeCoefficient = 0.2
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }else if(w < 480){
+      dat = e.slice(-8);
+      barSizeCoefficient = 0.5;
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }else{
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }
     select('#expense')
-      .datum(e)
-      .call(this._expense.width(content.clientWidth * 0.8));
+      .datum(dat)
+      .call(this._expense.width(w).barSize(barSize));
   }
 
   /**
@@ -78,12 +108,20 @@ export default class CreateView extends SiftView {
       return;
     }
     this.removeEmptyState();
+    this.recipeSuggestion();
     cardCreator(data);
   }
 
   removeEmptyState(){
     document.querySelector('.scoresinfo').classList.remove('hide');
-    document.querySelector('#hero-message').style.display = 'none';
+  }
+
+  recipeSuggestion(){
+    const fArray = Object.keys(ingredients);
+    const randomF = Math.floor(Math.random() * fArray.length);
+    const pickedF = ingredients[fArray[randomF]];
+    const node = document.querySelector('#hero-message');
+    node.innerHTML = `Next time try a <a target="_blank" href="http://www.bbc.co.uk/food/${pickedF.query}">recipe</a> with ${pickedF.plural}...`;
   }
 
   /**

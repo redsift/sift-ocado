@@ -10427,6 +10427,58 @@ function createItem(name, score){
   return document.importNode(t.content, true)
 }
 
+var Watercress = {"plural":"watercress","query":"watercress"};
+var Chard = {"plural":"chard","query":"chard"};
+var Spinach = {"plural":"spinach","query":"spinach"};
+var Chicory = {"plural":"chicory","query":"chicory"};
+var Parsley = {"plural":"parsley","query":"parsley"};
+var Kale = {"plural":"kale","query":"kale"};
+var Broccoli = {"plural":"broccoli","query":"broccoli"};
+var Pumpkin = {"plural":"pumpkin","query":"pumpkin"};
+var Kohlrabi = {"plural":"kohlrabi","query":"kohlrabi"};
+var Cauliflower = {"plural":"cauliflower","query":"cauliflower"};
+var Cabbage = {"plural":"cabbage","query":"cabbage"};
+var Carrot = {"plural":"carrots","query":"carrot"};
+var Tomato = {"plural":"tomatoes","query":"tomato"};
+var Lemon = {"plural":"lemons","query":"lemon"};
+var Strawberry = {"plural":"strawberries","query":"strawberry"};
+var Radish = {"plural":"radish","query":"radish"};
+var Orange = {"plural":"oranges","query":"orange"};
+var Lime = {"plural":"limes","query":"lime"};
+var Grapefruit = {"plural":"grapefruits","query":"grapefruit"};
+var Turnip = {"plural":"turnips","query":"turnip"};
+var Blackberry = {"plural":"blackberries","query":"blackberry"};
+var Leek = {"plural":"leek","query":"leek"};
+var ingredients = {
+	Watercress: Watercress,
+	Chard: Chard,
+	Spinach: Spinach,
+	Chicory: Chicory,
+	Parsley: Parsley,
+	Kale: Kale,
+	Broccoli: Broccoli,
+	Pumpkin: Pumpkin,
+	Kohlrabi: Kohlrabi,
+	Cauliflower: Cauliflower,
+	Cabbage: Cabbage,
+	Carrot: Carrot,
+	Tomato: Tomato,
+	Lemon: Lemon,
+	Strawberry: Strawberry,
+	Radish: Radish,
+	Orange: Orange,
+	Lime: Lime,
+	Grapefruit: Grapefruit,
+	Turnip: Turnip,
+	Blackberry: Blackberry,
+	Leek: Leek,
+	"Chinese cabbage": {"plural":"chinese cabbage","query":"chinese_cabbage"},
+	"Dandelion green": {"plural":"dandelion","query":"dandelion"},
+	"Brussels sprout": {"plural":"brussels sprouts","query":"brussels_sprouts"},
+	"Iceberg lettuce": {"plural":"iceberg lettuce","query":"iceberg_lettuce"},
+	"Sweet potato": {"plural":"sweet potatoes","query":"sweet_potato"}
+};
+
 class CreateView extends SiftView {
   constructor() {
     // You have to call the super() method to initialize the base class.
@@ -10452,12 +10504,26 @@ class CreateView extends SiftView {
 
   renderTotalSection(data){
     const parseTime = utcParse('%Y%m');
-    this._counts = data.map(function (e) {
-      return {
-        l: parseTime(e.key).getTime(),
-        v: [e.value]
-      };
+    moment.utc();
+    let months = {};
+    for(var i = 0; i < 12; i++){
+      const a = moment().subtract(i, 'months').format('YYYYMM');
+      months[a] = null;
+    }
+    // find the earliest date we have data for the last year
+    let min = Infinity;
+    data.forEach(d => {
+      min = Math.min(min, d.key);
+      months[d.key] = d.value
     });
+
+    this._counts = Object.keys(months)
+      .filter(k => k >= min)
+      .map(d => ({
+        l: parseTime(d).getTime(),
+        v: months[d] ? [months[d]] : []
+      }))
+
 
     if(!this._expense) {
       this._expense = bars('monthly')
@@ -10474,9 +10540,24 @@ class CreateView extends SiftView {
   onResize() {
     const content = document.querySelector('.content__container--expand');
     const e = this._counts || [];
+    const w = content.clientWidth * 0.8;
+    let dat = e.slice(-12);
+    let barSize = 6;
+    let barSizeCoefficient = 0.7;
+    if(w < 230){
+      dat = e.slice(-2);
+      barSizeCoefficient = 0.2
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }else if(w < 480){
+      dat = e.slice(-8);
+      barSizeCoefficient = 0.5;
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }else{
+      barSize = Math.floor(w / (dat.length + 1) * barSizeCoefficient);
+    }
     select('#expense')
-      .datum(e)
-      .call(this._expense.width(content.clientWidth * 0.8));
+      .datum(dat)
+      .call(this._expense.width(w).barSize(barSize));
   }
 
   /**
@@ -10492,12 +10573,20 @@ class CreateView extends SiftView {
       return;
     }
     this.removeEmptyState();
+    this.recipeSuggestion();
     cardCreator(data);
   }
 
   removeEmptyState(){
     document.querySelector('.scoresinfo').classList.remove('hide');
-    document.querySelector('#hero-message').style.display = 'none';
+  }
+
+  recipeSuggestion(){
+    const fArray = Object.keys(ingredients);
+    const randomF = Math.floor(Math.random() * fArray.length);
+    const pickedF = ingredients[fArray[randomF]];
+    const node = document.querySelector('#hero-message');
+    node.innerHTML = `Next time try a <a target="_blank" href="http://www.bbc.co.uk/food/${pickedF.query}">recipe</a> with ${pickedF.plural}...`;
   }
 
   /**
